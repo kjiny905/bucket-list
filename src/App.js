@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-import { StatusBar } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
 import styled, { ThemeProvider } from 'styled-components/native';
 import { theme } from './theme';
+import { Alert, Dimensions, StatusBar } from 'react-native';
 import Input from './components/Input';
 import { images } from './images';
 import IconButton from './components/IconButton';
 import Task from './components/Task';
-import { Dimensions } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SplashScreen from 'expo-splash-screen';
 
 const Container = styled.View`
   flex: 1;
@@ -28,11 +29,59 @@ const List = styled.ScrollView`
   width: ${({ width }) => width - 40}px;
 `;
 
-export default function App() {
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
+
+const App = () => {
   const width = Dimensions.get('window').width;
 
+  const [isReady, setIsReady] = useState(false);
   const [newTask, setNewTask] = useState('');
   const [tasks, setTasks] = useState({});
+
+  //데이터 저장하기
+  const _saveTasks = async tasks => {
+    try {
+      await AsyncStorage.setItem('tasks', JSON.stringify(tasks));
+      setTasks(tasks);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  //데이터 불러오기
+  const _loadTasks = async () => {
+    try {
+      const loadedTasks = await AsyncStorage.getItem('tasks');
+      setTasks(JSON.parse(loadedTasks || '{}'));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    async function prepare() {
+      try {
+        await _loadTasks();
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsReady(true);
+      }
+    }
+
+    prepare();
+  }, []);
+
+  const onLayoutRootView = useCallback(async () => {
+    if (isReady) {
+      await SplashScreen.hideAsync();
+    }
+  }, [isReady]);
+
+  if (!isReady) {
+    return null;
+  }
 
   //추가기능
   const _addTask = () => {
@@ -48,14 +97,14 @@ export default function App() {
   const _deleteTask = id => {
     const currentTasks = Object.assign({}, tasks);
     delete currentTasks[id];
-    setTasks(currentTasks);
+    _saveTasks(currentTasks);
   };
 
   //체크박스 체크
   const _toggleTask = id => {
     const currentTasks = Object.assign({}, tasks);
     currentTasks[id]['completed'] = !currentTasks[id]['completed'];
-    setTasks(currentTasks);
+    _saveTasks(currentTasks);
   };
 
   //수정 기능
@@ -76,15 +125,15 @@ export default function App() {
 
   return (
     <ThemeProvider theme={theme}>
-      <Container>
+      <Container onLayout={onLayoutRootView}>
         <StatusBar
           barStyle="light-content"
           backgroundColor={theme.background}
         />
         <Title>버킷 리스트</Title>
         <Input
-          placeholder="+ 항목추가"
           value={newTask}
+          placeholder="+ 항목추가"
           onChangeText={_handleTextChange}
           onSubmitEditing={_addTask}
           onBlur={_onBlur}
@@ -108,4 +157,6 @@ export default function App() {
       </Container>
     </ThemeProvider>
   );
-}
+};
+
+export default App;

@@ -1,7 +1,7 @@
-import PropTypes from 'prop-types';
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components/native';
 import { Dimensions } from 'react-native';
+import PropTypes from 'prop-types';
 
 const StyledInput = styled.TextInput.attrs(({ theme }) => ({
   placeholderTextColor: theme.main,
