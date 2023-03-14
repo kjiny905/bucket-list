@@ -95,9 +95,23 @@ const App = () => {
 
   //삭제기능
   const _deleteTask = id => {
-    const currentTasks = Object.assign({}, tasks);
-    delete currentTasks[id];
-    _saveTasks(currentTasks);
+    const currentTasks = { ...tasks };
+    Alert.alert('', '삭제하시겠습니까?', [
+      {
+        text: '아니오',
+        onPress() {
+          console.log('아니오');
+        },
+      },
+      {
+        text: '예',
+        onPress() {
+          console.log('예');
+          delete currentTasks[id];
+          _saveTasks(currentTasks);
+        },
+      },
+    ]);
   };
 
   //체크박스 체크
